@@ -1,0 +1,16 @@
+# Use a small, modern Node
+FROM node:20-slim
+
+ENV NODE_ENV=production
+WORKDIR /app
+
+# Install deps first (better layer cache)
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy source
+COPY . .
+
+# Fly will set PORT; your app must use process.env.PORT
+EXPOSE 8080
+CMD ["npm", "start"]

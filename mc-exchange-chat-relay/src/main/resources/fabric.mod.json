@@ -1,0 +1,28 @@
+{
+    "schemaVersion": 1,
+    "id": "mcexchange-chat-relay",
+    "version": "${version}",
+    "name": "MC Exchange Chat Relay",
+    "description": "Relays CivMC chat messages to MC Exchange backend for trade tracking and analysis",
+    "authors": [
+        "ramheart28"
+    ],
+    "contact": {
+        "homepage": "https://github.com/ramheart28/mc-exchange",
+        "sources": "https://github.com/ramheart28/mc-exchange"
+    },
+    "license": "CC0-1.0",
+    "icon": "assets/mcexchange/icon.png",
+    "environment": "client",
+    "entrypoints": {
+        "client": [
+            "com.mcexchange.chatrelay.ChatRelayMod"
+        ]
+    },
+    "depends": {
+        "fabricloader": ">=0.16.5",
+        "minecraft": "~1.21.8",
+        "java": ">=21",
+        "fabric-api": "*"
+    }
+}

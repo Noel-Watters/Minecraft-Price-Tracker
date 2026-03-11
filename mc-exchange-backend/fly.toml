@@ -1,0 +1,28 @@
+# fly.toml app configuration file generated for mc-exchange on 2025-11-06T17:16:31-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'beacon-civmc'
+primary_region = 'fra'
+
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Keep one machine always running (no cold starts)
+[deploy]
+  strategy = "rolling"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
