@@ -72,7 +72,7 @@ export default function SearchNavBar({
         handleFilterChange("output_enchants", next);
         return;
       }
-      handleFilterChange(key, undefined as any);
+      handleFilterChange(key, undefined as unknown as FilterState[typeof key]);
     },
     [filters.output_enchants, handleFilterChange]
   );

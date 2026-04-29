@@ -30,9 +30,7 @@ export default function RegionPage() {
   searchParams.forEach((value, key) => {
     if (key !== "query" && filterKeys.has(key as keyof FilterState)) {
       if (key === "output_enchants") {
-        initialFilters["output_enchants"] = value.split(","); // as string[]
-      } else {
-        initialFilters[key as keyof FilterState] = value as any;
+        initialFilters["output_enchants"] = value.split(",") as string[];
       }
     }
   });

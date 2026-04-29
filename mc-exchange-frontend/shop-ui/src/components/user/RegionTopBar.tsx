@@ -1,10 +1,11 @@
 import { getBoundsCenter } from '@/app/utils/formatBounds';
+import { Bounds } from '@/types/region';
 import Link from 'next/link';
 
 interface RegionTopBarProps {
   region?: {
     name?: string;
-    bounds?: any;
+    bounds?: Bounds[];
   };
   ownerButtonRef?: React.Ref<HTMLAnchorElement>;
 }

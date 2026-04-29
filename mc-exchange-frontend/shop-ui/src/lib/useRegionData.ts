@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Shop, ShopWithEvents } from "@/types/shop";
 import { Bounds } from "@/types/region";
+import { Exchange } from "@/types/exchanges";
 
 interface RegionData {
   region: { id: string; name: string; bounds: Bounds[] } | null;
@@ -57,7 +58,7 @@ export function useRegionData(slug: string, searchParams: URLSearchParams): Regi
       const exchanges = exchangesJson.data ?? [];
 
       // Group exchanges by shop ID
-      const exchangesByShop = new Map<string, any[]>();
+      const exchangesByShop = new Map<string, Exchange[]>();
       for (const ex of exchanges) {
         const shop = ex.shop;
         if (!shop) continue;
