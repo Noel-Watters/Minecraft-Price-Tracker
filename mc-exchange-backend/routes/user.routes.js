@@ -122,12 +122,12 @@ router.get("/exchanges", async (req, res) => {
     const output_enchant_filters = query_params.getAll("output_enchants");
     const avaliableOnly = req.query.available_only === 'true';
 
-    if (!regionSlugOrId)
-      return res.status(400).json({ error: "Missing region" });
+    if (!regionSlugOrId && !shopId)
+      return res.status(400).json({ error: "Missing region or shop" });
 
     // If region is not a UUID, look up the UUID from the slug
     let regionId = regionSlugOrId;
-    if (!/^[0-9a-fA-F-]{36}$/.test(regionSlugOrId)) {
+    if (regionSlugOrId && !/^[0-9a-fA-F-]{36}$/.test(regionSlugOrId)) {
       const { data: regionData, error: regionError } = await supabase
         .from("regions")
         .select("id")
@@ -153,20 +153,20 @@ router.get("/exchanges", async (req, res) => {
     }
 
     if (shopId)
-      query = query.eq('shop.id', shopId);
+      query = query.eq('shop', shopId);
 
     if (searchOutput) {
       query = query.ilike('output_item_id', `%${searchOutput.replace(/\s/g, '_')}%`);
     }
 
     if (compacted_filter === "both") {
-      query.eq("compacted_input", true);
-      query.eq("compacted_output", true);
+      query = query.eq("compacted_input", true);
+      query = query.eq("compacted_output", true);
     }
     else if (compacted_filter === "input")
-      query.eq("compacted_input", true);
+      query = query.eq("compacted_input", true);
     else if (compacted_filter === "output")
-      query.eq("compacted_output", true);
+      query = query.eq("compacted_output", true);
 
     if (order !== "ascending" && order !== "descending") {
       return res.status(400).json({ error: `Incorrect format for order` });

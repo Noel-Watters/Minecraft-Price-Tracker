@@ -11,6 +11,7 @@ import { SearchBar } from "./SearchBar";
 
 interface SearchTopBarProps {
   region?:string
+  basePath?:string;
   onSearch: (query: string) => void;
   onFiltersChange: (filters: FilterState) => void;
   initialFilters?: FilterState;
@@ -19,6 +20,7 @@ interface SearchTopBarProps {
 
 export default function SearchNavBar({
   region,
+  basePath = "/search",
   onSearch,
   onFiltersChange,
   initialFilters = {},
@@ -45,21 +47,26 @@ export default function SearchNavBar({
     setFilters(updated);
     onFiltersChange(updated);
 
-    // Update the URL with new filters
-    const params = new URLSearchParams(window.location.search);
-    Object.entries(updated).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") {
-        params.set(k, Array.isArray(v) ? v.join(",") : String(v));
-      } else {
-        params.delete(k);
-      }
-    });
-    params.set("region", region ?? "pavia");
-    const newUrl = `/search?${params.toString()}`;
-    const currentUrl = window.location.pathname + window.location.search;
-    if (currentUrl !== newUrl) {
-    router.push(`/search?${params.toString()}`);
+     // Update the URL with new filters
+  const params = new URLSearchParams(window.location.search);
+  
+  // Clear all filter keys first so unchecked filters are removed from URL
+  (["sort_by", "order", "compacted_input", "compacted_output", "output_enchants", "available_only"] as const)
+    .forEach(k => params.delete(k));
+  
+  // Re-apply only active filters
+  Object.entries(updated).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)) {
+      params.set(k, Array.isArray(v) ? v.join(",") : String(v));
     }
+  });
+  
+  params.set("region", region ?? "pavia");
+  const newUrl = `${basePath}?${params.toString()}`;
+  const currentUrl = window.location.pathname + window.location.search;
+  if (currentUrl !== newUrl) {
+    router.push(newUrl, { scroll: false });
+  }
   },
   [filters, onFiltersChange, router]
 );

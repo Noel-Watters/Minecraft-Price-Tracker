@@ -26,7 +26,11 @@ export default function RegionPage() {
 
   const filterKeys = new Set<keyof FilterState>([
     "output_enchants",
-    // Add filters once supported 
+    "sort_by",
+    "order",
+    "compacted_input",
+    "compacted_output",
+    "available_only"
   ]);
 
   // Parse filters from URL
@@ -57,8 +61,26 @@ export default function RegionPage() {
       }
     });
     params.set("region", slug);
-    router.push(`?$ {params.toString()}`, { scroll: false });
+    router.push(`?${params.toString()}`, { scroll: false });
   };
+
+  function buildExchangeQs(shopId: string) {
+  const qs = new URLSearchParams();
+  qs.set("shop", shopId);
+  qs.set("region", slug);
+  qs.set("sort_by", searchParams.get("sort_by") || "ts");
+  qs.set("order", searchParams.get("order") || "descending");
+  if (searchParams.get("compacted_input") === "true" && searchParams.get("compacted_output") === "true") {
+    qs.set("compacted", "both");
+  } else if (searchParams.get("compacted_input") === "true") {
+    qs.set("compacted", "input");
+  } else if (searchParams.get("compacted_output") === "true") {
+    qs.set("compacted", "output");
+  }
+  searchParams.getAll("output_enchants").forEach(e => qs.append("output_enchants", e));
+  if (searchParams.get("available_only") === "true") qs.set("available_only", "true");
+  return qs.toString();
+}
 
 async function fetchShopsPage(currentOffset: number) {
   const shopsRes = await fetch(`/api/user/regions/${slug}/shops?limit=5&offset=${currentOffset}`);
@@ -66,41 +88,62 @@ async function fetchShopsPage(currentOffset: number) {
   if (shopsData && shopsData.shops) {
     const shopsWithEvents = await Promise.all(
       shopsData.shops.map(async (shop: Shop) => {
-        const eventsRes = await fetch(`/api/user/exchanges/shop?shop=${shop.id}`);
+        const [eventsRes, floatingRes] = await Promise.all([
+          fetch(`/api/user/exchanges?${buildExchangeQs(shop.id)}`),
+          shop.has_floating ? fetch(`/api/user/exchanges/shop?shop=${shop.id}`) : Promise.resolve(null),
+        ]);
         const eventsData = await eventsRes.json();
+        const floatingData = floatingRes ? await floatingRes.json() : null;
         return {
           ...shop,
           events: eventsData.data || [],
-          floating_exchanges: eventsData.floating_exchanges || [],
+          floating_exchanges: floatingData?.floating_exchanges || [],
         };
       })
     );
-    setShops(prev => [...prev, ...shopsWithEvents]);  // append, not replace
+    setShops(prev => currentOffset === 0 ? shopsWithEvents : [...prev, ...shopsWithEvents]);
     setHasMore(shopsData.pagination.hasMore);
     setOffset(currentOffset + shopsData.shops.length);
   }
 }
 
-  useEffect(() => {
-    async function fetchRegionAndShops() {
-      setLoading(true);
-      setShops([]);
-      setOffset(0);
-      setHasMore(true);
+async function refetchExchanges(currentShops: ShopWithEvents[]) {
+  const updated = await Promise.all(
+    currentShops.map(async (shop) => {
+      const res = await fetch(`/api/user/exchanges?${buildExchangeQs(shop.id)}`);
+      const data = await res.json();
+      return { ...shop, events: data.data || [] };
+    })
+  );
+  setShops(updated);
+}
 
-      // 1. Fetch region by slug
-      const regionRes = await fetch(`/api/user/regions?slug=${slug}`);
-      const regionData = await regionRes.json();
-      const foundRegion = regionData.regions?.[0];
-      setRegion(foundRegion);
-
-      if (foundRegion) {
-        await fetchShopsPage(0);
-      }
-      setLoading(false);
+// Slug change → full reset
+useEffect(() => {
+  async function fetchRegionAndShops() {
+    setLoading(true);
+    setShops([]);
+    setOffset(0);
+    setHasMore(true);
+    const regionRes = await fetch(`/api/user/regions?slug=${slug}`);
+    const regionData = await regionRes.json();
+    const foundRegion = regionData.regions?.[0];
+    setRegion(foundRegion);
+    if (foundRegion) {
+      await fetchShopsPage(0);
     }
-    fetchRegionAndShops();
-  }, [slug]);
+    setLoading(false);
+  }
+  fetchRegionAndShops();
+}, [slug]);
+
+// Filter change → re-fetch exchanges only, preserve scroll
+const searchParamsString = searchParams.toString();
+useEffect(() => {
+  if (shops.length > 0) {
+    refetchExchanges(shops);
+  }
+}, [searchParamsString]);
 
   useEffect(() => {
   if (!sentinelRef.current) return;
@@ -138,6 +181,7 @@ async function fetchShopsPage(currentOffset: number) {
       <div className="sticky top-0 z-40">
         <SearchNavBar
           region={slug}
+          basePath={`/${slug}`}
           isSticky={isSticky}
           onSearch={handleSearch}
           onFiltersChange={handleFiltersChange}
