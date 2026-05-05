@@ -55,19 +55,6 @@ export function formatItemId(id: string): string {
     .join(" ");
 }
 
-/**
- * Map item IDs to the IDs expected by the icon CDN.
- * Handles a few special cases and aliases.
- */
-export function normalizeItemImageId(id: string): string {
-  let out = id;
-  if (id.endsWith("_armor_trim")) {
-    out = `${id}_smithing_template`;
-  } else if (id === "eye_of_ender") {
-    out = "ender_eye";
-  }
-  return out;
-}
 
 /**
  * Utility to get the "kind" of an exchange, defaulting to "trade"

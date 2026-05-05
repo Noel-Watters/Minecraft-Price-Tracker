@@ -2,6 +2,7 @@
 import { Exchange } from "@/types/exchanges";
 import Image from "next/image";
 import React, { useState } from "react";
+import { normalizeItemImageId } from "@/lib/items";
 
 export default function EventsList({ events }: { events: Exchange[] }) {
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
@@ -45,12 +46,7 @@ export default function EventsList({ events }: { events: Exchange[] }) {
     );
   };
 
-  const mapToImageId = (idString: string) => {
-    let out = idString;
-    if (idString.endsWith("_armor_trim")) out = `${out}_smithing_template`;
-    else if (idString === "eye_of_ender") out = "ender_eye";
-    return out;
-  };
+
 
   const renderItemColumn = (
     id: string | number,
@@ -60,7 +56,7 @@ export default function EventsList({ events }: { events: Exchange[] }) {
   ) => {
     const idString = String(id);
     const hasFailed = failedImages.has(idString);
-    const imageId = mapToImageId(idString);
+    const imageId = normalizeItemImageId(idString);
 
     let descriptors: Array<{ label: string; color: string }> = [];
     if (isCompacted)
