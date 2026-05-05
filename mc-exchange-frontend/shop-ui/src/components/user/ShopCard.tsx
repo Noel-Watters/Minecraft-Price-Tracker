@@ -22,13 +22,12 @@ export default function ShopCard({ shop }: { shop: ShopWithEvents }) {
   return (
     <div className="max-w-400 mx-auto rounded-lg shadow p-6 text-white">
       <div className="flex items-center mb-4">
-        <div className="w-30 h-30 bg-hover rounded-lg shadow-medium flex items-center justify-center overflow-hidden mr-4">
+        <div className="relative w-30 h-30 bg-hover rounded-lg shadow-medium overflow-hidden mr-4">
           <Image
             src={displayImage}
             alt={`${shop.name} icon`}
             className="w-full h-full object-cover rounded-lg"
-            width={120}
-            height={120}
+            fill
             onError={() => setImgError(true)}
             unoptimized
           />

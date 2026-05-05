@@ -75,12 +75,11 @@ export default function ShopCard({ shop, onEdit, onDelete, regionId }: ShopCardP
     <div className="bg-pv-surface-elevated border border-pv-border p-4 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 w-100">
       {/* Shop Image */}
       <div className="flex justify-center mb-4">
-        <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+        <div className="relative w-16 h-16 bg-white rounded-lg  justify-center overflow-hidden">
           <Image
             src={displayImage}
             alt={`${shop.name} icon`}
-            width={64}
-            height={64}
+            fill
             className="w-full h-full object-contain"
             onError={() => setImageError(true)}
           />
