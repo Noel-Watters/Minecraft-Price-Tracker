@@ -7,6 +7,7 @@ import SearchNavBar from "@/components/Search/SearchNavBar";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { Bounds } from "@/types/region";
 import { FilterState } from "@/types/filters";
+import { Exchange } from "@/types/exchanges";
 
 export default function RegionPage() {
   const params = useParams();
@@ -63,6 +64,16 @@ export default function RegionPage() {
     params.set("region", slug);
     router.push(`?${params.toString()}`, { scroll: false });
   };
+  
+  function filterFloatingExchanges(events: Exchange[], floatingExchanges: { item_id: string }[]): Exchange[] {
+  const floatingItemIds = new Set(floatingExchanges.map(fx => fx.item_id));
+  return events.filter(ex =>
+    !(
+      (ex.input_item_id === "diamond" && floatingItemIds.has(ex.output_item_id)) ||
+      (ex.output_item_id === "diamond" && floatingItemIds.has(ex.input_item_id))
+    )
+  );
+}
 
   function buildExchangeQs(shopId: string) {
   const qs = new URLSearchParams();
@@ -96,7 +107,7 @@ async function fetchShopsPage(currentOffset: number) {
         const floatingData = floatingRes ? await floatingRes.json() : null;
         return {
           ...shop,
-          events: eventsData.data || [],
+          events: filterFloatingExchanges(eventsData.data || [], floatingData?.floating_exchanges || []),
           floating_exchanges: floatingData?.floating_exchanges || [],
         };
       })
@@ -112,7 +123,7 @@ async function refetchExchanges(currentShops: ShopWithEvents[]) {
     currentShops.map(async (shop) => {
       const res = await fetch(`/api/user/exchanges?${buildExchangeQs(shop.id)}`);
       const data = await res.json();
-      return { ...shop, events: data.data || [] };
+      return { ...shop, events: filterFloatingExchanges(data.data || [], shop.floating_exchanges || []) };
     })
   );
   setShops(updated);
