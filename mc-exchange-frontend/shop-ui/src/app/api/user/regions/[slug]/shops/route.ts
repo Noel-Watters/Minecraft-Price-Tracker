@@ -8,7 +8,11 @@ export async function GET(req: NextRequest) {
     const segments = req.nextUrl.pathname.split('/');
     const regionSlug = segments[segments.length - 2];
 
-    const res = await fetch(`${BACKEND_URL}/user/regions/${regionSlug}/shops`, {
+    const searchParams = req.nextUrl.searchParams;
+    const limit = searchParams.get('limit') ?? '10';
+    const offset = searchParams.get('offset') ?? '0';
+        
+    const res = await fetch(`${BACKEND_URL}/user/regions/${regionSlug}/shops?limit=${limit}&offset=${offset}`, {
       headers: {
         'Content-Type': 'application/json',
       },

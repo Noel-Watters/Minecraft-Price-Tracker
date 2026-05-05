@@ -28,18 +28,30 @@ router.get("/regions/:slug/shops", async (req, res) => {
       return res.status(400).json({ error: 'bad_request', details: region_error });
     }
 
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
     const { data: shops_data, error: shop_error } = await supabase
       .from("shops")
       .select("id, name, created_at, owner, region, bounds, image, index, has_floating, exchange_items")
       .in('id', region_data.shops)
-      .order("index", { ascending: true });
+      .order("index", { ascending: true })
+      .range (offset, offset + limit -1);
 
     if (shop_error) {
       console.error('Unable to find shop:', shop_error);
       return res.status(400).json({ error: 'bad_request', details: shop_error });
     }
 
-    return res.status(201).json({ ok: true, shops: shops_data });
+    return res.status(201).json({ 
+      ok: true, 
+      shops: shops_data,
+      pagination: {
+        limit,
+        offset,
+        hasMore: shops_data.length === limit,
+      }, 
+    });
   } catch (e) {
     console.error('ingest error', e);
     return res.status(500).json({ error: 'server_error' });

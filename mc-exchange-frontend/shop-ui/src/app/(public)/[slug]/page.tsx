@@ -17,6 +17,10 @@ export default function RegionPage() {
   const [region, setRegion] = useState<{ id: string; name: string; bounds: Bounds[] } | null>(null);
   const [shops, setShops] = useState<ShopWithEvents[]>([]);
   const [loading, setLoading] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const ownerButtonRef = useRef<HTMLAnchorElement>(null);
   const [isSticky, setIsSticky] = useState(false);
 
@@ -53,12 +57,36 @@ export default function RegionPage() {
       }
     });
     params.set("region", slug);
-    router.push(`?${params.toString()}`, { scroll: false });
+    router.push(`?$ {params.toString()}`, { scroll: false });
   };
+
+async function fetchShopsPage(currentOffset: number) {
+  const shopsRes = await fetch(`/api/user/regions/${slug}/shops?limit=5&offset=${currentOffset}`);
+  const shopsData = await shopsRes.json();
+  if (shopsData && shopsData.shops) {
+    const shopsWithEvents = await Promise.all(
+      shopsData.shops.map(async (shop: Shop) => {
+        const eventsRes = await fetch(`/api/user/exchanges/shop?shop=${shop.id}`);
+        const eventsData = await eventsRes.json();
+        return {
+          ...shop,
+          events: eventsData.data || [],
+          floating_exchanges: eventsData.floating_exchanges || [],
+        };
+      })
+    );
+    setShops(prev => [...prev, ...shopsWithEvents]);  // append, not replace
+    setHasMore(shopsData.pagination.hasMore);
+    setOffset(currentOffset + shopsData.shops.length);
+  }
+}
 
   useEffect(() => {
     async function fetchRegionAndShops() {
       setLoading(true);
+      setShops([]);
+      setOffset(0);
+      setHasMore(true);
 
       // 1. Fetch region by slug
       const regionRes = await fetch(`/api/user/regions?slug=${slug}`);
@@ -67,28 +95,27 @@ export default function RegionPage() {
       setRegion(foundRegion);
 
       if (foundRegion) {
-        // 2. Fetch shops for region (optionally add filters/search here)
-        const shopsRes = await fetch(`/api/user/regions/${slug}/shops`);
-        const shopsData = await shopsRes.json();
-        if (shopsData && shopsData.shops) {
-          const shopsWithEvents = await Promise.all(
-            shopsData.shops.map(async (shop: Shop) => {
-              const eventsRes = await fetch(`/api/user/exchanges/shop?shop=${shop.id}`);
-              const eventsData = await eventsRes.json();
-              return {
-                ...shop,
-                events: eventsData.data || [],
-                floating_exchanges: eventsData.floating_exchanges || [],
-              };
-            })
-          );
-          setShops(shopsWithEvents);
-        }
+        await fetchShopsPage(0);
       }
       setLoading(false);
     }
     fetchRegionAndShops();
-  }, [slug /*, ...add filter dependencies if you want to refetch on filter change*/]);
+  }, [slug]);
+
+  useEffect(() => {
+  if (!sentinelRef.current) return;
+
+  const observer = new IntersectionObserver(async ([entry]) => {
+    if (entry.isIntersecting && hasMore && !loadingMore) {
+      setLoadingMore(true);
+      await fetchShopsPage(offset);
+      setLoadingMore(false);
+    }
+  });
+
+  observer.observe(sentinelRef.current);
+  return () => observer.disconnect();
+}, [hasMore, loadingMore, offset, slug]);
 
  useEffect(() => {
   if (!region || !ownerButtonRef.current) return;
@@ -134,10 +161,17 @@ export default function RegionPage() {
         </div>
       ) : (
         <div>
-          {shops.length === 0 ? (
+          {shops.length === 0 && !loading ? (
             <div className="text-center text-gray-500">No shops found for this region.</div>
           ) : (
             shops.map((shop) => <ShopCard key={shop.id} shop={shop} />)
+          )}
+          {/*Sentinel - triggers next page load when scrolled into view*/}
+          <div ref={sentinelRef} />
+          {loadingMore&& (
+            <div className = "flex justify-center items-center h-16">
+              <div className=" animate-spi round-full h-6 w-6 border-b-2 border-gray-900"></div>
+            </div>
           )}
         </div>
       )}
